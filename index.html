@@ -167,8 +167,9 @@ input[readonly]{background:var(--paper);color:var(--mute)}
 
 <main class="band"><div class="wrap">
   <div class="note" id="note"></div>
-  <h2>В работе</h2>
-  <div class="shelf" id="shelf"></div>
+  <section id="waitWrap"><h2 id="waitSum">Ждём старт</h2>
+  <div class="shelf" id="shelf"></div></section>
+  <section id="startWrap" hidden style="margin-top:36px"><h2 id="startSum">Стартовало</h2><div class="shelf" id="shelf2"></div></section>
   <p class="sample" id="sampleNote" hidden>Это пример карточки, он исчезнет, когда вы добавите свой первый литмоб.</p>
   <section id="archWrap" hidden style="margin-top:36px"><h2 id="archSum">Завершенные</h2><div class="shelf" id="arch"></div></section>
   <section class="datapanel">
@@ -281,7 +282,13 @@ function render(){
   const next=i=>{const e=events([i])[0];return e?e.n:1e9};
   const act=shown.filter(i=>!isArchived(i)).sort((a,b)=>next(a)-next(b)||(a.d3||'9').localeCompare(b.d3||'9'));
   const arc=shown.filter(isArchived).sort((a,b)=>(b.d6||b.d3||b.updated||'').localeCompare(a.d6||a.d3||a.updated||''));
-  $('shelf').innerHTML=act.length?act.map(cardHTML).join(''):(mode==='loading'?'<p class="hint">Загружаю ваши литмобы…</p>':'<p class="hint">Активных литмобов нет. Самое время записаться на новый.</p>');
+  const started=i=>{if((+i.stage||0)>=PUB)return true;const s0=i.d5||i.d2;const n=daysTo(s0);return n!==null&&n<=0};
+  const wait=act.filter(i=>!started(i)),go=act.filter(started);
+  $('shelf').innerHTML=wait.length?wait.map(cardHTML).join(''):(mode==='loading'?'<p class="hint">Загружаю ваши литмобы…</p>':act.length?'<p class="hint">Все литмобы уже стартовали.</p>':'<p class="hint">Активных литмобов нет. Самое время записаться на новый.</p>');
+  $('waitSum').textContent='Ждём старт'+(wait.length?' · '+wait.length:'');
+  $('shelf2').innerHTML=go.map(cardHTML).join('');
+  $('startWrap').hidden=!go.length;
+  $('startSum').textContent='Стартовало · '+go.length;
   $('arch').innerHTML=arc.map(cardHTML).join('');
   $('archWrap').hidden=!arc.length;
   $('archSum').textContent='Завершенные · '+arc.length;
@@ -430,7 +437,7 @@ $('icsBtn').onclick=()=>{
   download('litmob-daty.ics',icsFor([editing]),'text/calendar');$('icsBtn').textContent='Файл скачан';
 };
 function openCard(el){const id=el.dataset.id;openForm(id==='sample'?null:items.find(x=>x.id===id))}
-for(const box of [$('shelf'),$('arch')]){
+for(const box of [$('shelf'),$('shelf2'),$('arch')]){
   box.addEventListener('click',e=>{const c=e.target.closest('.card');if(c)openCard(c)});
   box.addEventListener('keydown',e=>{const c=e.target.closest('.card');if(c&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openCard(c)}});
 }
