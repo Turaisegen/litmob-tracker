@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Трекер литмобов</title>
+<meta name="theme-color" content="#4a47b0">
+<meta name="description" content="Трекер литмобов для авторов: записи, готовность текста, дедлайны">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday: рабочий ежедневник писателя, тёплый и спокойный
+   IDEA книжная полка с закладками-ленточками: каждая книга литмоба стоит обложкой к читателю
+   PICTURE полка с корешками в шапке, фон из маленьких книжек, обложки с ленточкой «осталось N дней»
+   COLOUR бледно-сиреневая бумага, чернила индиго, голубой и сиреневый как рабочие цвета, коралловая ленточка для срочного
+   TYPE Unbounded для заголовков и цифр + Onest для текста
+   LAYOUT шапка с полкой во всю ширину, лента дат, сетка карточек; телефон: одна колонка */
+:root{color-scheme:light dark;--bg:light-dark(#f3f1fb,#16142a);--card:light-dark(#ffffff,#211e3a);--paper:light-dark(#ebe8f8,#2a2648);--ink:light-dark(#252150,#ece9ff);--mute:light-dark(#625e8c,#b4aee0);--line:light-dark(#dcd6f2,#3a3562);--main:light-dark(#4a47b0,#a9a4ff);--onmain:light-dark(#ffffff,#16142a);--sky:#5aa9e6;--lil:#a48ef0;--rib:#e8576b;--sun:#a48ef0;--ok:#5aa9e6;--head:light-dark(#dfe6fb,#1d1b38)}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 Onest,system-ui,sans-serif;overflow-x:clip;position:relative;min-height:100%}
+body::before{content:'';position:fixed;inset:0;z-index:-1;opacity:.13;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' fill='none' stroke='%237a6fd6' stroke-width='2' stroke-linejoin='round'%3E%3Crect x='14' y='20' width='30' height='40' rx='3'/%3E%3Cpath d='M20 20v40M26 30h12M26 36h9'/%3E%3Crect x='96' y='88' width='44' height='12' rx='2'/%3E%3Crect x='100' y='100' width='38' height='12' rx='2'/%3E%3Crect x='94' y='112' width='46' height='12' rx='2'/%3E%3Cpath d='M70 70c8-4 16-4 22 0v26c-6-4-14-4-22 0zM70 70c-8-4-16-4-22 0v26c6-4 14-4 22 0z'/%3E%3Cpath d='M120 22l14 4-8 30-14-4zM18 112h8v34h-8zM28 106h10v40H28z'/%3E%3C/svg%3E");background-size:160px 160px}
+.band{padding:clamp(22px,3.5vw,48px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+h1,h2,.num{font-family:Unbounded,Onest,sans-serif;letter-spacing:-.02em}
+h1{font-size:clamp(28px,4vw,42px);line-height:1.05;margin:0}
+h2{font-size:20px;margin:0 0 14px}
+.top{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.sub{color:var(--mute);margin:6px 0 0}
+button,.btn{font:600 15px Onest,sans-serif;min-height:44px;padding:0 18px;border-radius:12px;border:1.5px solid var(--main);background:var(--card);color:var(--main);cursor:pointer}
+button.main{background:var(--main);color:var(--onmain)}
+button:hover{filter:brightness(1.06)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+button.ghost{border-color:var(--line)}
+button.danger{border-color:var(--rib);color:var(--rib)}
+.hero{background:var(--head)}
+.hero .band{padding-bottom:8px}
+.fig{position:relative}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.shelfbox{height:96px;overflow:visible}
+.cat{position:absolute;right:max(5vw,16px);bottom:6px;width:92px;height:88px;z-index:2}
+.cat svg{display:block}
+.cat .shut,.cat .blush{opacity:0}
+.cat.happy .blush{opacity:1}
+.bubble{position:absolute;right:70px;bottom:70px;white-space:nowrap;background:var(--card);color:var(--ink);border:1.5px solid var(--lil);border-radius:14px 14px 4px 14px;padding:6px 12px;font:600 13px Onest,sans-serif;opacity:0;transform:translateY(6px);pointer-events:none}
+.cat{cursor:pointer}
+.cat:focus-visible{outline:3px solid var(--sky);outline-offset:4px;border-radius:12px}
+.cat.happy .bubble,.cat.talk .bubble{opacity:1;transform:none}
+@media(prefers-reduced-motion:no-preference){
+.cat .eyeL,.cat .eyeR.open{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+.cat.happy .eyeR.open{animation:winkOpen 3s infinite}
+.cat.happy .eyeR.shut{animation:winkShut 3s infinite}
+.cat.happy .eyeL{animation:none}
+.cat .tail{transform-origin:74px 86px;animation:tail 3.5s ease-in-out infinite}
+.cat.cheer svg{animation:hop .5s ease 3}
+.bubble{transition:opacity .4s,transform .4s}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+@keyframes winkOpen{0%,55%,85%,100%{opacity:1}60%,80%{opacity:0}}
+@keyframes winkShut{0%,55%,85%,100%{opacity:0}60%,80%{opacity:1}}
+@keyframes tail{0%,100%{transform:rotate(0)}50%{transform:rotate(-8deg)}}
+@keyframes hop{50%{transform:translateY(-10px)}}}
+@media(prefers-reduced-motion:reduce){.cat.happy .eyeR.open{opacity:0}.cat.happy .eyeR.shut{opacity:1}}
+@media(max-width:600px){.bubble{font-size:12px}}
+main.band{padding-top:8px}
+.dates{background:transparent}
+.strip{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
+.ev{flex:0 0 auto;scroll-snap-align:start;min-width:190px;max-width:260px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center}
+.ev .num{font-size:30px;line-height:1;grid-row:span 2;color:var(--main)}
+.ev .what{font-weight:600;line-height:1.25}
+.ev .who{color:var(--mute);font-size:14px;line-height:1.3}
+.ev.hot{border-color:var(--rib)}
+.ev.hot .num{color:var(--rib)}
+.empty-ev{color:var(--mute)}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:18px}
+.card{display:grid;grid-template-columns:116px minmax(0,1fr);gap:16px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--card);cursor:pointer;box-shadow:0 2px 0 var(--line);text-align:left;position:relative}
+.card:hover{border-color:var(--lil)}
+.cover{position:relative;aspect-ratio:2/3;border-radius:6px 10px 10px 6px;overflow:hidden;background:linear-gradient(160deg,#6d7fe0,#9a7fe6);box-shadow:inset 6px 0 0 rgba(0,0,0,.25),0 6px 0 -2px var(--line)}
+.cover img{width:100%;height:100%;object-fit:cover;display:block}
+.cover .ph{position:absolute;inset:10px 10px 10px 14px;color:#f1eee8;font:700 13px/1.15 Unbounded,sans-serif;display:flex;align-items:flex-end;overflow-wrap:anywhere}
+.ribbon{position:absolute;top:-2px;right:10px;width:30px;padding:6px 0 12px;background:var(--rib);color:#fff;text-align:center;font:700 13px/1 Unbounded,sans-serif;clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)}
+.ribbon small{display:block;font:500 9px Onest,sans-serif;margin-top:3px}
+.ribbon.calm{background:var(--lil);color:#fff}
+.ribbon.done{background:var(--ok);color:#fff}
+.info{display:flex;flex-direction:column;gap:6px}
+.book{font:700 17px/1.2 Unbounded,sans-serif;margin:0;overflow-wrap:anywhere}
+.lm{color:var(--mute);font-size:14px;line-height:1.35}
+.chip{display:inline-block;font-size:13px;padding:2px 9px;border-radius:99px;background:var(--paper);border:1px solid var(--line);margin-right:4px}
+.bar{height:10px;border-radius:99px;background:var(--paper);border:1px solid var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--sky),var(--lil));border-radius:99px}
+.bar.full i{background:var(--sky)}
+.chars{font-size:14px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.chars b{white-space:nowrap;font-variant-numeric:tabular-nums}
+.steps{display:flex;gap:4px}
+.steps span{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.steps span.on{background:var(--sun)}
+.steps span.on.pub{background:var(--ok)}
+.stages2{display:grid;gap:8px}
+.stage{font-size:13px;color:var(--mute)}
+.sample{font-size:13px;color:var(--mute);margin-top:10px}
+details.arch summary{cursor:pointer;font:600 16px Onest,sans-serif;min-height:44px;display:flex;align-items:center}
+.note{padding:12px 16px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--mute);margin-bottom:16px}
+.note:empty{display:none}
+.ov{position:fixed;inset:0;background:color-mix(in srgb,#000 45%,transparent);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px;z-index:5}
+.ov.open{display:flex}
+.dlg{background:var(--card);color:var(--ink);border-radius:18px;width:min(720px,100%);padding:clamp(16px,3vw,28px);border:1px solid var(--line)}
+.dlg h2{font-size:22px}
+fieldset{border:0;padding:0;margin:0 0 18px}
+legend{font:700 15px Unbounded,sans-serif;margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--mute)}
+input,textarea,select{font:16px Onest,sans-serif;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px;width:100%}
+textarea{min-height:90px;resize:vertical}
+input[readonly]{background:var(--paper);color:var(--mute)}
+.coverpick{display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;align-items:center}
+.stagepick{display:flex;flex-wrap:wrap;gap:6px}
+.stagepick button{min-height:38px;padding:0 12px;font-size:14px;border-color:var(--line);color:var(--ink)}
+.stagepick button.on{background:var(--lil);border-color:var(--lil);color:#fff}
+.row{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-top:8px}
+.row .r{display:flex;gap:10px;flex-wrap:wrap}
+.hint{font-size:13px;color:var(--mute)}
+.install{display:none}
+.datapanel{margin-top:44px;padding:20px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.datapanel .r{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.datapanel .hint{font-size:15px;max-width:70ch}
+@media(max-width:600px){.grid2,.grid3{grid-template-columns:minmax(0,1fr)}.card{grid-template-columns:92px minmax(0,1fr)}.top button{width:100%}}
+@media(prefers-reduced-motion:no-preference){.bar i{transition:width .5s ease}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="band"><div class="wrap top">
+  <div><h1>Мои литмобы</h1><p class="sub" id="sub">Записи, тексты и дедлайны в одном месте</p></div>
+  <div class="r" style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="install ghost" id="installBtn" type="button">Установить приложение</button>
+    <button class="main" id="addBtn" type="button">Записаться на литмоб</button>
+  </div>
+</div></div><div class="fig shelfbox"><svg id="shelf-svg" aria-hidden="true"></svg>
+<div class="cat" id="cat" title="Погладь кота" role="button" tabindex="0" aria-label="Кот, нажмите для поддержки">
+ <div class="bubble" id="bubble">Литмоб завершён! Мур!</div>
+ <svg viewBox="0 0 100 96" width="92" height="88" aria-hidden="true">
+  <path class="tail" d="M74 86c14 0 20-8 18-20-1-6 5-8 6-2 3 16-6 28-24 28z" fill="#7f78c9"/>
+  <ellipse cx="50" cy="70" rx="27" ry="22" fill="#8f88d8"/>
+  <ellipse cx="50" cy="76" rx="14" ry="13" fill="#d9d3fb"/>
+  <path d="M28 30l4-22 14 14zM72 30l-4-22-14 14z" fill="#8f88d8"/>
+  <path d="M32 26l2-11 8 8zM68 26l-2-11-8 8z" fill="#f2b8c6"/>
+  <circle cx="50" cy="40" r="24" fill="#8f88d8"/>
+  <ellipse cx="50" cy="48" rx="11" ry="8" fill="#d9d3fb"/>
+  <g class="eyeL"><ellipse cx="40" cy="38" rx="4" ry="5" fill="#252150"/><circle cx="41.4" cy="36.4" r="1.4" fill="#fff"/></g>
+  <g class="eyeR open"><ellipse cx="60" cy="38" rx="4" ry="5" fill="#252150"/><circle cx="61.4" cy="36.4" r="1.4" fill="#fff"/></g>
+  <path class="eyeR shut" d="M55 39q5-5 10 0" stroke="#252150" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  <path d="M47 45h6l-3 3z" fill="#e8576b"/>
+  <path d="M50 48v3M50 51q-3 3-6 1M50 51q3 3 6 1" stroke="#252150" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <ellipse class="blush" cx="35" cy="47" rx="4" ry="2.4" fill="#f2b8c6"/><ellipse class="blush" cx="65" cy="47" rx="4" ry="2.4" fill="#f2b8c6"/>
+  <path d="M30 46l-12-2M30 49l-12 2M70 46l12-2M70 49l12 2" stroke="#fff" stroke-width="1.2" opacity=".7"/>
+  <ellipse cx="40" cy="89" rx="7" ry="4.5" fill="#9b94e2"/><ellipse cx="60" cy="89" rx="7" ry="4.5" fill="#9b94e2"/>
+ </svg>
+</div></div></header>
+
+<section class="band dates"><div class="wrap">
+  <h2>Ближайшие даты</h2>
+  <div class="strip" id="strip"></div>
+</div></section>
+
+<main class="band"><div class="wrap">
+  <div class="note" id="note"></div>
+  <h2>В работе</h2>
+  <div class="shelf" id="shelf"></div>
+  <p class="sample" id="sampleNote" hidden>Это пример карточки, он исчезнет, когда вы добавите свой первый литмоб.</p>
+  <section id="archWrap" hidden style="margin-top:36px"><h2 id="archSum">Завершенные</h2><div class="shelf" id="arch"></div></section>
+  <section class="datapanel">
+   <h2>Мои данные</h2>
+   <p class="hint">Все записи и обложки хранятся только на этом устройстве. Время от времени сохраняйте резервную копию: с ней можно перенести литмобы на другой компьютер или телефон.</p>
+   <div class="r"><button type="button" class="ghost" id="backupBtn">Сохранить резервную копию</button><button type="button" class="ghost" id="restoreBtn">Восстановить из копии</button><button type="button" class="ghost" id="icsAllBtn">Все даты в календарь</button></div>
+   <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+  </section>
+</div></main>
+
+<div class="ov" id="ov" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+ <form class="dlg" id="form" novalidate>
+  <h2 id="dlgTitle">Новый литмоб</h2>
+  <fieldset><legend>Литмоб</legend>
+   <div class="grid2">
+    <label>Название литмоба<input id="f_name" required placeholder="Например, «Лёд и любовь»"></label>
+    <label>Площадка<select id="f_platform"><option>Литрес</option><option>Author.Today</option><option>Литнет</option><option>Литгород</option><option>Другая</option></select></label>
+   </div>
+   <label style="margin-top:12px">Тема<textarea id="f_theme" placeholder="Например: зимняя сказка, кот в главной роли, Новый год"></textarea></label>
+   <label style="margin-top:12px">Жанры<input id="f_genres" placeholder="Ромфант, бытовое фэнтези, юмор"></label>
+   <label style="margin-top:12px">Важное (тропы, теги, сезонность и т.д.)<textarea id="f_important" placeholder="Например: от ненависти до любви, обязательный тег #новогоднийкот, действие зимой"></textarea></label>
+   <div class="grid2" style="margin-top:12px">
+    <label>Объём от, зн. с пробелами<input id="f_goal" type="number" min="0" step="1000" inputmode="numeric" placeholder="30000"></label>
+    <label>Объём до, зн. с пробелами<input id="f_max" placeholder="Например: 60 000 или без ограничений"></label>
+   </div>
+   <label style="margin-top:12px">Ссылка на литмоб<input id="f_link" type="url" placeholder="https://"></label>
+  </fieldset>
+  <fieldset><legend>Даты</legend>
+   <div class="grid3">
+    <label>Старт выкладки<input id="f_d2" type="date"></label>
+    <label>Формат<select id="f_fmt"><option>Подписка</option><option>Завершенка</option></select></label>
+    <label>Дедлайн<input id="f_d3" type="date"></label>
+   </div>
+   <p class="hint" id="fmtHint" hidden>Для завершенки дедлайн совпадает со стартом выкладки и подставляется сам.</p>
+   <div class="grid2" style="margin-top:12px">
+    <label>Старт литмоба<input id="f_d5" type="date"></label>
+    <label>Окончание литмоба<input id="f_d6" type="date"></label>
+   </div>
+  </fieldset>
+  <fieldset><legend>Моя книга</legend>
+   <label>Название книги<input id="f_book" placeholder="Рабочее название"></label>
+   <label style="margin-top:12px">О чём будет текст<textarea id="f_plan" placeholder="Задумка, герои, ключевые повороты"></textarea></label>
+   <label style="margin-top:12px">Аннотация<textarea id="f_annot" placeholder="Текст для страницы книги"></textarea></label>
+   <div class="coverpick" style="margin-top:12px">
+    <div class="cover" id="f_cov"></div>
+    <div><label>Обложка<input id="f_file" type="file" accept="image/*"></label><p class="hint" id="covHint">JPG или PNG, картинка сожмётся для хранения</p></div>
+   </div>
+  </fieldset>
+  <fieldset><legend>Готовность</legend>
+   <label>Написано, зн. с пробелами<input id="f_cur" type="number" min="0" step="100" inputmode="numeric"></label>
+   <label style="margin-top:12px">Или вставьте текст, я посчитаю знаки (всё написанное на данный момент)<textarea id="f_text" placeholder="Текст не сохраняется, считается только количество знаков"></textarea></label>
+   <p class="hint" style="margin:10px 0 6px">Выберите этап</p>
+   <div class="stages2" id="f_stage"></div>
+  </fieldset>
+  <div class="row">
+   <div class="r"><button type="button" class="danger" id="delBtn">Удалить</button><button type="button" class="ghost" id="icsBtn">Даты в календарь</button></div>
+   <div class="r"><button type="button" class="ghost" id="cancelBtn">Отмена</button><button type="submit" class="main" id="saveBtn">Сохранить</button></div>
+  </div>
+ </form>
+</div>
+
+<script>
+{
+const STAGES=['Заявка','План','Черновик','Вычитка','Дописано','Начало выкладки','Выкладка','Завершение выкладки'];const PUB=5,LAST=7;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtN=n=>Number(n||0).toLocaleString('ru-RU');
+const DAY=864e5;
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const parseD=s=>{if(!s)return null;const [y,m,d]=s.split('-').map(Number);return y?new Date(y,m-1,d):null};
+const daysTo=s=>{const d=parseD(s);return d?Math.round((d-today())/DAY):null};
+const fmtD=s=>parseD(s).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+const plural=(n,a,b,c)=>{n=Math.abs(n)%100;const k=n%10;return n>10&&n<20?c:k===1?a:k>1&&k<5?b:c};
+const inDays=n=>n===0?'сегодня':n===1?'завтра':'через '+n+' '+plural(n,'день','дня','дней');
+
+let items=[],mode='loading',editing=null,cover='',stage=0,delArmed=false,idb=null;
+const LS='litmob-tracker-v1';
+const SAMPLE={id:'sample',name:'Замурчательный новый кот',platform:'Литрес',theme:'Новый год и кот в главной роли',genres:'Ромфант, юмор',max:60000,d5:addDays(5),d2:addDays(12),fmt:'Подписка',d3:addDays(26),d6:addDays(40),book:'Кот, который вернул Рождество',plan:'Ведьма-кондитер и наглый рыжий фамильяр спасают городскую ярмарку.',cur:18400,goal:30000,stage:2,sample:true};
+function addDays(n){const d=today();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+
+function events(list){
+  const out=[];
+  for(const it of list){const full=it.fmt==='Завершенка'&&it.d2&&it.d2===it.d3;for(const [k,lab] of [['d5','Старт литмоба'],['d2',full?'Старт выкладки и дедлайн':'Старт выкладки'],['d3','Дедлайн'],['d6','Окончание литмоба']]){if(full&&k==='d3')continue;const n=daysTo(it[k]);if(n!==null&&n>=0)out.push({n,lab,it,date:it[k]})}}
+  return out.sort((a,b)=>a.n-b.n);
+}
+const isArchived=it=>{if((+it.stage||0)>=LAST)return true;const n=daysTo(it.d6||it.d3);return n!==null&&n<0};
+const coverSrc=it=>typeof it.cover==='string'&&it.cover.startsWith('data:image/')?it.cover:'';
+
+function coverHTML(it){
+  const src=coverSrc(it);
+  const ev=events([it])[0];
+  let rib='';
+  if(it.stage>=LAST)rib='<div class="ribbon done">✓<small>готово</small></div>';
+  else if(ev)rib='<div class="ribbon '+(ev.n>7?'calm':'')+'">'+ev.n+'<small>'+esc(plural(ev.n,'день','дня','дней'))+'</small></div>';
+  return '<div class="cover">'+(src?'<img alt="" src="'+esc(src)+'">':'<div class="ph">'+esc(it.book||it.name||'Без названия')+'</div>')+rib+'</div>';
+}
+function cardHTML(it){
+  const goal=+it.goal||0,cur=+it.cur||0,pct=goal?Math.min(100,Math.round(cur/goal*100)):0;
+  return '<article class="card" tabindex="0" data-id="'+esc(it.id)+'">'+coverHTML(it)+
+  '<div class="info"><p class="book">'+esc(it.book||'Книга без названия')+'</p>'+
+  '<div class="lm"><span class="chip">'+esc(it.platform||'')+'</span>'+(it.fmt?'<span class="chip">'+esc(it.fmt)+'</span>':'')+esc(it.name||'')+'</div>'+
+  (it.genres?'<div class="lm">'+esc(it.genres)+'</div>':'')+'<div class="chars"><span><b>'+fmtN(cur)+'</b> из <b>'+(goal?fmtN(goal):'?')+'</b>'+(typeof it.max==='number'&&it.max?' (до '+fmtN(it.max)+')':'')+' зн.'+(typeof it.max==='string'&&it.max?' · до: '+esc(it.max):'')+'</span><b>'+(goal?pct+'%':'')+'</b></div>'+
+  '<div class="bar'+(pct>=100?' full':'')+'"><i style="width:'+pct+'%"></i></div>'+
+  '<div class="steps">'+STAGES.map((s,i)=>'<span class="'+(i<=(+it.stage||0)?(i>=PUB?'on pub':'on'):'')+'"></span>').join('')+'</div>'+
+  '<div class="stage">Этап: '+esc(STAGES[+it.stage||0])+'</div></div></article>';
+}
+function render(){
+  const real=items.slice();
+  const shown=real.length?real:(mode==='loading'?[]:[SAMPLE]);
+  const next=i=>{const e=events([i])[0];return e?e.n:1e9};
+  const act=shown.filter(i=>!isArchived(i)).sort((a,b)=>next(a)-next(b)||(a.d3||'9').localeCompare(b.d3||'9'));
+  const arc=shown.filter(isArchived).sort((a,b)=>(b.d6||b.d3||b.updated||'').localeCompare(a.d6||a.d3||a.updated||''));
+  $('shelf').innerHTML=act.length?act.map(cardHTML).join(''):(mode==='loading'?'<p class="hint">Загружаю ваши литмобы…</p>':'<p class="hint">Активных литмобов нет. Самое время записаться на новый.</p>');
+  $('arch').innerHTML=arc.map(cardHTML).join('');
+  $('archWrap').hidden=!arc.length;
+  $('archSum').textContent='Завершенные · '+arc.length;
+  $('sampleNote').hidden=!(shown[0]&&shown[0].sample);
+  const ev=events(act).slice(0,12);
+  $('strip').innerHTML=ev.length?ev.map(e=>'<div class="ev'+(e.n<=3?' hot':'')+'"><span class="num">'+parseD(e.date).getDate()+'</span><span class="what">'+esc(e.lab)+', '+esc(inDays(e.n))+'</span><span class="who">'+esc(fmtD(e.date))+' · '+esc(e.it.book||e.it.name)+'</span></div>').join(''):'<p class="empty-ev">Пока ни одного дедлайна. Отдыхаем или пишем для себя.</p>';
+  const n=real.filter(i=>!isArchived(i)).length;
+  $('sub').textContent=n?('В работе '+n+' '+plural(n,'литмоб','литмоба','литмобов')+(ev[0]&&!ev[0].it.sample?', ближайшая дата '+inDays(ev[0].n):'')):'Записи, тексты и дедлайны в одном месте';
+  const done=real.filter(i=>(+i.stage||0)>=LAST);
+  $('cat').classList.toggle('happy',done.length>0);
+  happyText=done.length>1?'Завершено литмобов: '+done.length+'! Мур!':done.length?'Литмоб завершён! Мур!':'';
+  if(!$('cat').classList.contains('talk')&&happyText)$('bubble').textContent=happyText;
+}
+
+/* ---------- хранилище: IndexedDB на устройстве ---------- */
+function openIDB(){return new Promise((res,rej)=>{const r=indexedDB.open('litmob-tracker',1);r.onupgradeneeded=()=>r.result.createObjectStore('items',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function tx(mode2,fn){return new Promise((res,rej)=>{const t=idb.transaction('items',mode2);const st=t.objectStore('items');const out=fn(st);t.oncomplete=()=>res(out&&out.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})}
+async function loadAll(){
+  if(idb){items=await tx('readonly',st=>st.getAll())||[];}
+  else{try{items=JSON.parse(localStorage.getItem(LS)||'[]')}catch(e){items=[]}}
+}
+async function saveItem(it){
+  if(idb)await tx('readwrite',st=>st.put(it));
+  const i=items.findIndex(x=>x.id===it.id);if(i>=0)items[i]=it;else items.push(it);
+  if(!idb)localStorage.setItem(LS,JSON.stringify(items));
+  render();
+}
+async function deleteItem(id){
+  if(idb)await tx('readwrite',st=>st.delete(id));
+  items=items.filter(x=>x.id!==id);
+  if(!idb)localStorage.setItem(LS,JSON.stringify(items));
+  render();
+}
+async function boot(){
+  render();
+  try{idb=await openIDB()}catch(e){idb=null}
+  try{await loadAll()}catch(e){items=[]}
+  if(!idb)$('note').textContent='Этот браузер не даёт сохранять данные надёжно. Записи могут пропасть, сохраняйте резервную копию.';
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+  mode='ready';render();remindToday();
+}
+function remindToday(){
+  const ev=events(items.filter(i=>!isArchived(i))).filter(e=>e.n<=1);
+  if(ev.length&&!$('note').textContent)$('note').textContent='Не забудьте: '+ev.map(e=>e.lab.toLowerCase()+' '+inDays(e.n)+' («'+(e.it.book||e.it.name)+'»)').join('; ')+'.';
+}
+
+/* ---------- календарь (.ics) ---------- */
+const icsEsc=t=>String(t||'').replace(/\\/g,'\\\\').replace(/;/g,'\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+const icsFold=l=>{const out=[];let cur='';for(const ch of l){if(new TextEncoder().encode(cur+ch).length>73){out.push(cur);cur=' '+ch}else cur+=ch}out.push(cur);return out.join('\r\n')};
+function icsFor(list){
+  const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Litmob Tracker//RU','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  for(const it of list){
+    const full=it.fmt==='Завершенка'&&it.d2&&it.d2===it.d3;
+    for(const [k,lab] of [['d5','Старт литмоба'],['d2',full?'Старт выкладки и дедлайн':'Старт выкладки'],['d3','Дедлайн'],['d6','Окончание литмоба']]){
+      if(!it[k]||(full&&k==='d3'))continue;
+      const d=it[k].replace(/-/g,''),nd=new Date(parseD(it[k]).getTime()+DAY+3600e3*3);const d2=nd.getFullYear()+String(nd.getMonth()+1).padStart(2,'0')+String(nd.getDate()).padStart(2,'0');
+      const title=lab+': '+(it.book||it.name);
+      L.push('BEGIN:VEVENT','UID:'+it.id+'-'+k+'@litmob-tracker','DTSTAMP:'+stamp,'DTSTART;VALUE=DATE:'+d,'DTEND;VALUE=DATE:'+d2,icsFold('SUMMARY:'+icsEsc(title)),icsFold('DESCRIPTION:'+icsEsc('Литмоб «'+it.name+'»'+(it.platform?', '+it.platform:'')+(it.link?'\n'+it.link:''))));
+      for(const [tr,txt] of [['-P7D','через неделю'],['-P3D','через 3 дня'],['-P1D','завтра'],['PT9H','сегодня']])L.push('BEGIN:VALARM','ACTION:DISPLAY',icsFold('DESCRIPTION:'+icsEsc(lab+' '+txt+': '+(it.book||it.name))),'TRIGGER:'+tr,'END:VALARM');
+      L.push('END:VEVENT');
+    }
+  }
+  L.push('END:VCALENDAR');return L.join('\r\n');
+}
+function download(name,text,type){const b=new Blob([text],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
+function hasDates(list){return list.some(it=>it.d2||it.d3||it.d5||it.d6)}
+
+/* ---------- резервная копия ---------- */
+$('backupBtn').onclick=()=>{
+  if(!items.length){$('note').textContent='Пока нечего сохранять: добавьте хотя бы один литмоб.';return}
+  const d=new Date().toISOString().slice(0,10);
+  download('litmoby-'+d+'.json',JSON.stringify({app:'litmob-tracker',version:1,exported:new Date().toISOString(),items},null,1),'application/json');
+  $('note').textContent='Резервная копия сохранена в папку загрузок. Литмобов в ней: '+items.length+'.';
+};
+$('restoreBtn').onclick=()=>$('restoreFile').click();
+$('restoreFile').addEventListener('change',async()=>{
+  const f=$('restoreFile').files[0];$('restoreFile').value='';if(!f)return;
+  try{
+    const data=JSON.parse(await f.text());
+    const list=Array.isArray(data)?data:data&&Array.isArray(data.items)?data.items:null;
+    if(!list)throw new Error('format');
+    let n=0;
+    for(const raw of list){
+      if(!raw||typeof raw!=='object'||typeof raw.id!=='string')continue;
+      const it={};for(const k of [...F,'id','stage','cover','updated'])if(raw[k]!==undefined)it[k]=raw[k];
+      if(it.cover&&!coverSrc(it))delete it.cover;
+      it.stage=Math.min(LAST,Math.max(0,parseInt(it.stage)||0));
+      await saveItem(it);n++;
+    }
+    $('note').textContent='Восстановлено литмобов: '+n+'. Если литмоб уже был в трекере, его заменила версия из копии.';
+  }catch(e){$('note').textContent='Не получилось прочитать файл. Нужен файл резервной копии трекера (.json).'}
+});
+$('icsAllBtn').onclick=()=>{
+  const list=items.filter(i=>!isArchived(i));
+  if(!hasDates(list)){$('note').textContent='У литмобов в работе пока нет дат.';return}
+  download('litmoby-daty.ics',icsFor(list),'text/calendar');
+  $('note').textContent='Файл с датами скачан. Откройте его, и даты с напоминаниями добавятся в ваш календарь.';
+};
+
+/* ---------- установка ---------- */
+let installEvt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;$('installBtn').style.display='inline-block'});
+$('installBtn').onclick=async()=>{if(!installEvt)return;installEvt.prompt();try{await installEvt.userChoice}catch(e){}installEvt=null;$('installBtn').style.display='none'};
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+
+/* ---------- форма ---------- */
+const F=['name','platform','theme','genres','important','goal','max','link','d2','fmt','d3','d5','d6','book','plan','annot','cur','goal'];
+function paintStages(){const b=(s,i)=>'<button type="button" data-s="'+i+'" class="'+(i===stage?'on':'')+'">'+esc(s)+'</button>';$('f_stage').innerHTML='<div class="stagepick">'+STAGES.slice(0,PUB).map((s,i)=>b(s,i)).join('')+'</div><div class="stagepick">'+STAGES.slice(PUB).map((s,i)=>b(s,i+PUB)).join('')+'</div>'}
+function paintCover(){const src=coverSrc({cover});$('f_cov').innerHTML=src?'<img alt="Обложка" src="'+esc(src)+'">':'<div class="ph">'+esc($('f_book').value||'Обложка')+'</div>'}
+function openForm(it){
+  editing=it&&!it.sample?it:null;const src=it||{};
+  for(const k of F)$('f_'+k).value=src[k]??(k==='platform'?'Литрес':k==='fmt'?'Подписка':'');syncFmt();if(!src.theme&&src.rules)$('f_theme').value=src.rules;
+  if(it&&it.sample){$('f_name').value='';}
+  stage=+src.stage||0;cover=editing?editing.cover||'':'';$('icsBtn').style.display=editing?'':'none';
+  $('f_text').value='';$('f_file').value='';delArmed=false;$('delBtn').textContent='Удалить';$('icsBtn').textContent='Даты в календарь';
+  $('delBtn').style.visibility=editing?'visible':'hidden';
+  $('dlgTitle').textContent=editing?'Литмоб «'+(editing.name||'')+'»':'Новый литмоб';
+  paintStages();paintCover();$('ov').classList.add('open');setTimeout(()=>$('f_name').focus(),30);
+}
+function closeForm(){$('ov').classList.remove('open')}
+$('addBtn').onclick=()=>openForm(null);
+$('cancelBtn').onclick=closeForm;
+$('ov').addEventListener('click',e=>{if(e.target===$('ov'))closeForm()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('ov').classList.contains('open'))closeForm()});
+$('f_stage').addEventListener('click',e=>{const b=e.target.closest('button');if(b){stage=+b.dataset.s;paintStages()}});
+$('f_book').addEventListener('input',paintCover);
+function syncFmt(){const full=$('f_fmt').value==='Завершенка';$('fmtHint').hidden=!full;$('f_d3').readOnly=full;if(full)$('f_d3').value=$('f_d2').value}
+$('f_fmt').addEventListener('change',syncFmt);$('f_d2').addEventListener('input',syncFmt);$('f_d2').addEventListener('change',syncFmt);
+$('f_text').addEventListener('input',()=>{const t=$('f_text').value;if(t)$('f_cur').value=t.length});
+$('f_file').addEventListener('change',()=>{
+  const f=$('f_file').files[0];if(!f)return;
+  $('covHint').textContent='Обрабатываю…';
+  const url=URL.createObjectURL(f);const img=new Image();
+  img.onload=()=>{
+    const W=Math.min(480,img.naturalWidth),H=Math.round(img.naturalHeight*W/img.naturalWidth);
+    const c=document.createElement('canvas');c.width=W;c.height=H;c.getContext('2d').drawImage(img,0,0,W,H);
+    cover=c.toDataURL('image/jpeg',.85);URL.revokeObjectURL(url);paintCover();$('covHint').textContent='Обложка добавлена';
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);$('covHint').textContent='Не получилось открыть картинку. Попробуйте JPG или PNG.'};
+  img.src=url;
+});
+$('icsBtn').onclick=()=>{
+  if(!editing)return;
+  if(!hasDates([editing])){$('covHint').textContent='';$('icsBtn').textContent='Сначала укажите даты и сохраните';return}
+  download('litmob-daty.ics',icsFor([editing]),'text/calendar');$('icsBtn').textContent='Файл скачан';
+};
+function openCard(el){const id=el.dataset.id;openForm(id==='sample'?null:items.find(x=>x.id===id))}
+for(const box of [$('shelf'),$('arch')]){
+  box.addEventListener('click',e=>{const c=e.target.closest('.card');if(c)openCard(c)});
+  box.addEventListener('keydown',e=>{const c=e.target.closest('.card');if(c&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openCard(c)}});
+}
+$('form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!$('f_name').value.trim()){$('f_name').focus();$('f_name').placeholder='Нужно название литмоба';return}
+  const it={id:editing?editing.id:('lm'+Date.now().toString(36)+Math.random().toString(36).slice(2,6))};
+  for(const k of F)it[k]=$('f_'+k).value.trim();
+  it.cur=Math.max(0,parseInt(it.cur)||0);it.goal=Math.max(0,parseInt(it.goal)||0);{const m=String(it.max||'').trim(),n=m.replace(/[\s\u00a0]/g,'');it.max=/^\d+$/.test(n)?parseInt(n):m;}delete it.rules;
+  it.stage=stage;if(cover)it.cover=cover;it.updated=new Date().toISOString();
+  if(it.link&&!/^https:\/\//.test(it.link))it.link='';
+  $('saveBtn').disabled=true;
+  const wasDone=editing&&(+editing.stage||0)>=LAST;
+  try{await saveItem(it);closeForm();if(it.stage>=LAST&&!wasDone){const c=$('cat');c.classList.remove('cheer');void c.offsetWidth;c.classList.add('cheer')}}
+  catch(err){$('note').textContent=err&&err.name==='QuotaExceededError'?'На устройстве закончилось место для трекера. Удалите старые литмобы или обложки.':'Не получилось сохранить. Попробуйте ещё раз.'}
+  finally{$('saveBtn').disabled=false}
+});
+$('delBtn').onclick=async()=>{
+  if(!editing)return;
+  if(!delArmed){delArmed=true;$('delBtn').textContent='Точно удалить?';return}
+  try{await deleteItem(editing.id);closeForm()}catch(err){$('note').textContent='Не получилось удалить.'}
+};
+
+function drawShelf(){
+  const sv=$('shelf-svg');const W=sv.clientWidth,H=sv.clientHeight;if(!W)return;
+  const cols=['#5aa9e6','#a48ef0','#7c8ee8','#c3b4f7','#8fc6f0','#6a5fc9','#b9d6f5','#e8576b'];
+  let r=7,x=12,out='';const rnd=()=>(r=r*16807%2147483647)/2147483647;
+  const gapA=W-Math.max(W*.05,16)-100,gapB=W-Math.max(W*.05,16)+4;
+  while(x<W-20){
+    if(x+32>gapA&&x<gapB){x=gapB;continue}
+    const w=14+Math.round(rnd()*18),h=Math.round(H*(.5+rnd()*.42)),c=cols[Math.floor(rnd()*(rnd()<.08?8:7))];
+    const tilt=rnd()<.07&&x>40;const y=H-8-h;
+    out+='<g'+(tilt?' transform="rotate(-9 '+(x+w)+' '+(H-8)+')"':'')+'><rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="2" fill="'+c+'"/><rect x="'+x+'" y="'+y+'" width="3" height="'+h+'" fill="#fff" opacity=".25"/><rect x="'+x+'" y="'+(y+8)+'" width="'+w+'" height="3" fill="#fff" opacity=".45"/><rect x="'+x+'" y="'+(y+h-12)+'" width="'+w+'" height="3" fill="#fff" opacity=".45"/></g>';
+    x+=w+(rnd()<.12?12+rnd()*30:2);
+  }
+  out+='<rect x="0" y="'+(H-8)+'" width="'+W+'" height="8" fill="var(--main)" opacity=".55"/>';
+  sv.innerHTML=out;
+}
+const CHEERS=['Молодец!','Всё получится!','Деньги-денежки!','Лучший писатель!'];
+let lastCheer=-1,talkT=0,happyText='';
+function catTalk(){
+  const c=$('cat');let i;do{i=Math.floor(Math.random()*CHEERS.length)}while(i===lastCheer&&CHEERS.length>1);lastCheer=i;
+  $('bubble').textContent=CHEERS[i]+' Мур!';
+  c.classList.add('talk');c.classList.remove('cheer');void c.offsetWidth;c.classList.add('cheer');
+  clearTimeout(talkT);talkT=setTimeout(()=>{c.classList.remove('talk');if(happyText)$('bubble').textContent=happyText},2600);
+}
+$('cat').addEventListener('click',catTalk);
+$('cat').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();catTalk()}});
+const shelfRO=new ResizeObserver(drawShelf);shelfRO.observe($('shelf-svg'));
+boot();
+}
+</script>
+</body>
+</html>
