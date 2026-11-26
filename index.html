@@ -19,7 +19,7 @@
    COLOUR бледно-сиреневая бумага, чернила индиго, голубой и сиреневый как рабочие цвета, коралловая ленточка для срочного
    TYPE Unbounded для заголовков и цифр + Onest для текста
    LAYOUT шапка с полкой во всю ширину, лента дат, сетка карточек; телефон: одна колонка */
-:root{color-scheme:light dark;--bg:light-dark(#f3f1fb,#16142a);--card:light-dark(#ffffff,#211e3a);--paper:light-dark(#ebe8f8,#2a2648);--ink:light-dark(#252150,#ece9ff);--mute:light-dark(#625e8c,#b4aee0);--line:light-dark(#dcd6f2,#3a3562);--main:light-dark(#4a47b0,#a9a4ff);--onmain:light-dark(#ffffff,#16142a);--sky:#5aa9e6;--lil:#a48ef0;--rib:#e8576b;--sun:#a48ef0;--ok:#5aa9e6;--head:light-dark(#dfe6fb,#1d1b38)}
+:root{color-scheme:light dark;--bg:light-dark(#f3f1fb,#16142a);--card:light-dark(#ffffff,#211e3a);--paper:light-dark(#ebe8f8,#2a2648);--ink:light-dark(#252150,#ece9ff);--mute:light-dark(#625e8c,#b4aee0);--line:light-dark(#dcd6f2,#3a3562);--main:light-dark(#4a47b0,#a9a4ff);--onmain:light-dark(#ffffff,#16142a);--sky:#5aa9e6;--lil:#a48ef0;--rib:#e8576b;--sun:#a48ef0;--ok:#5aa9e6;--head:light-dark(#dfe6fb,#1d1b38);--red:light-dark(#c9334a,#ff8394)}
 *{box-sizing:border-box;min-width:0}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.55 Onest,system-ui,sans-serif;overflow-x:clip;position:relative;min-height:100%}
@@ -124,6 +124,12 @@ input[readonly]{background:var(--paper);color:var(--mute)}
 .row .r{display:flex;gap:10px;flex-wrap:wrap}
 .hint{font-size:13px;color:var(--mute)}
 .install{display:none}
+.years{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.years button{min-height:40px;padding:0 16px;border-radius:99px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:700 15px Unbounded,Onest,sans-serif}
+.years button small{font:500 13px Onest,sans-serif;color:var(--mute);margin-left:6px}
+.years button.on{background:var(--main);border-color:var(--main);color:var(--onmain)}
+.years button.on small{color:var(--onmain);opacity:.8}
+.lmname{margin:0;color:var(--red);font:700 14px/1.25 Unbounded,Onest,sans-serif;overflow-wrap:anywhere}
 .datapanel{margin-top:44px;padding:20px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
 .datapanel .r{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
 .datapanel .hint{font-size:15px;max-width:70ch}
@@ -167,6 +173,7 @@ input[readonly]{background:var(--paper);color:var(--mute)}
 
 <main class="band"><div class="wrap">
   <div class="note" id="note"></div>
+  <div class="years" id="years" role="tablist" aria-label="Год"></div>
   <section id="waitWrap"><h2 id="waitSum">Ждём старт</h2>
   <div class="shelf" id="shelf"></div></section>
   <section id="startWrap" hidden style="margin-top:36px"><h2 id="startSum">Стартовало</h2><div class="shelf" id="shelf2"></div></section>
@@ -269,22 +276,29 @@ function coverHTML(it){
 function cardHTML(it){
   const goal=+it.goal||0,cur=+it.cur||0,pct=goal?Math.min(100,Math.round(cur/goal*100)):0;
   return '<article class="card" tabindex="0" data-id="'+esc(it.id)+'">'+coverHTML(it)+
-  '<div class="info"><p class="book">'+esc(it.book||'Книга без названия')+'</p>'+
-  '<div class="lm"><span class="chip">'+esc(it.platform||'')+'</span>'+(it.fmt?'<span class="chip">'+esc(it.fmt)+'</span>':'')+esc(it.name||'')+'</div>'+
+  '<div class="info"><p class="lmname">'+esc(it.name||'Литмоб без названия')+'</p><p class="book">'+esc(it.book||'Книга без названия')+'</p>'+
+  '<div class="lm"><span class="chip">'+esc(it.platform||'')+'</span>'+(it.fmt?'<span class="chip">'+esc(it.fmt)+'</span>':'')+'</div>'+
   (it.genres?'<div class="lm">'+esc(it.genres)+'</div>':'')+'<div class="chars"><span><b>'+fmtN(cur)+'</b> из <b>'+(goal?fmtN(goal):'?')+'</b>'+(typeof it.max==='number'&&it.max?' (до '+fmtN(it.max)+')':'')+' зн.'+(typeof it.max==='string'&&it.max?' · до: '+esc(it.max):'')+'</span><b>'+(goal?pct+'%':'')+'</b></div>'+
   '<div class="bar'+(pct>=100?' full':'')+'"><i style="width:'+pct+'%"></i></div>'+
   '<div class="steps">'+STAGES.map((s,i)=>'<span class="'+(i<=(+it.stage||0)?(i>=PUB?'on pub':'on'):'')+'"></span>').join('')+'</div>'+
   '<div class="stage">Этап: '+esc(STAGES[+it.stage||0])+'</div></div></article>';
 }
+const CUR_Y=String(new Date().getFullYear());
+let year=(()=>{try{return localStorage.getItem(LS+'-year')||CUR_Y}catch(e){return CUR_Y}})();
+const yearOf=it=>{const y=String(it.d5||it.d2||it.d3||it.d6||it.updated||'').slice(0,4);return /^\d{4}$/.test(y)?y:CUR_Y};
 function render(){
   const real=items.slice();
-  const shown=real.length?real:(mode==='loading'?[]:[SAMPLE]);
+  const pool=real.length?real:(mode==='loading'?[]:[SAMPLE]);
+  const cnt={};cnt[CUR_Y]=0;for(const i of pool)cnt[yearOf(i)]=(cnt[yearOf(i)]||0)+1;
+  const ys=Object.keys(cnt).sort();if(!cnt[year]&&cnt[year]!==0)year=CUR_Y;
+  $('years').innerHTML=ys.map(y=>'<button type="button" role="tab" aria-selected="'+(y===year)+'" data-y="'+y+'" class="'+(y===year?'on':'')+'">'+y+'<small>'+cnt[y]+'</small></button>').join('');
+  const shown=pool.filter(i=>yearOf(i)===year);
   const next=i=>{const e=events([i])[0];return e?e.n:1e9};
   const act=shown.filter(i=>!isArchived(i)).sort((a,b)=>next(a)-next(b)||(a.d3||'9').localeCompare(b.d3||'9'));
   const arc=shown.filter(isArchived).sort((a,b)=>(b.d6||b.d3||b.updated||'').localeCompare(a.d6||a.d3||a.updated||''));
   const started=i=>{if((+i.stage||0)>=PUB)return true;const s0=i.d5||i.d2;const n=daysTo(s0);return n!==null&&n<=0};
   const wait=act.filter(i=>!started(i)),go=act.filter(started);
-  $('shelf').innerHTML=wait.length?wait.map(cardHTML).join(''):(mode==='loading'?'<p class="hint">Загружаю ваши литмобы…</p>':act.length?'<p class="hint">Все литмобы уже стартовали.</p>':'<p class="hint">Активных литмобов нет. Самое время записаться на новый.</p>');
+  $('shelf').innerHTML=wait.length?wait.map(cardHTML).join(''):(mode==='loading'?'<p class="hint">Загружаю ваши литмобы…</p>':act.length?'<p class="hint">Все литмобы уже стартовали.</p>':'<p class="hint">В '+year+' году активных литмобов нет. Самое время записаться на новый.</p>');
   $('waitSum').textContent='Ждём старт'+(wait.length?' · '+wait.length:'');
   $('shelf2').innerHTML=go.map(cardHTML).join('');
   $('startWrap').hidden=!go.length;
@@ -293,7 +307,7 @@ function render(){
   $('archWrap').hidden=!arc.length;
   $('archSum').textContent='Завершенные · '+arc.length;
   $('sampleNote').hidden=!(shown[0]&&shown[0].sample);
-  const ev=events(act).slice(0,12);
+  const ev=events(pool.filter(i=>!isArchived(i))).slice(0,12);
   $('strip').innerHTML=ev.length?ev.map(e=>'<div class="ev'+(e.n<=3?' hot':'')+'"><span class="num">'+parseD(e.date).getDate()+'</span><span class="what">'+esc(e.lab)+', '+esc(inDays(e.n))+'</span><span class="who">'+esc(fmtD(e.date))+' · '+esc(e.it.book||e.it.name)+'</span></div>').join(''):'<p class="empty-ev">Пока ни одного дедлайна. Отдыхаем или пишем для себя.</p>';
   const n=real.filter(i=>!isArchived(i)).length;
   $('sub').textContent=n?('В работе '+n+' '+plural(n,'литмоб','литмоба','литмобов')+(ev[0]&&!ev[0].it.sample?', ближайшая дата '+inDays(ev[0].n):'')):'Записи, тексты и дедлайны в одном месте';
@@ -407,14 +421,22 @@ function openForm(it){
   $('f_text').value='';$('f_file').value='';delArmed=false;$('delBtn').textContent='Удалить';$('icsBtn').textContent='Даты в календарь';
   $('delBtn').style.visibility=editing?'visible':'hidden';
   $('dlgTitle').textContent=editing?'Литмоб «'+(editing.name||'')+'»':'Новый литмоб';
+  dirty=false;cancelArmed=false;$('cancelBtn').textContent='Отмена';$('cancelBtn').classList.remove('danger');
   paintStages();paintCover();$('ov').classList.add('open');setTimeout(()=>$('f_name').focus(),30);
 }
 function closeForm(){$('ov').classList.remove('open')}
 $('addBtn').onclick=()=>openForm(null);
-$('cancelBtn').onclick=closeForm;
-$('ov').addEventListener('click',e=>{if(e.target===$('ov'))closeForm()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('ov').classList.contains('open'))closeForm()});
-$('f_stage').addEventListener('click',e=>{const b=e.target.closest('button');if(b){stage=+b.dataset.s;paintStages()}});
+let dirty=false,cancelArmed=false;
+function tryClose(){
+  if(!dirty){closeForm();return}
+  if(!cancelArmed){cancelArmed=true;$('cancelBtn').textContent='Закрыть без сохранения?';$('cancelBtn').classList.add('danger');$('cancelBtn').focus();return}
+  closeForm();
+}
+$('cancelBtn').onclick=tryClose;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('ov').classList.contains('open')){e.preventDefault();tryClose()}});
+$('form').addEventListener('input',()=>{dirty=true});$('form').addEventListener('change',()=>{dirty=true});
+$('years').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;year=b.dataset.y;try{localStorage.setItem(LS+'-year',year)}catch(err){}render()});
+$('f_stage').addEventListener('click',e=>{const b=e.target.closest('button');if(b){stage=+b.dataset.s;dirty=true;paintStages()}});
 $('f_book').addEventListener('input',paintCover);
 function syncFmt(){const full=$('f_fmt').value==='Завершенка';$('fmtHint').hidden=!full;$('f_d3').readOnly=full;if(full)$('f_d3').value=$('f_d2').value}
 $('f_fmt').addEventListener('change',syncFmt);$('f_d2').addEventListener('input',syncFmt);$('f_d2').addEventListener('change',syncFmt);
@@ -451,7 +473,7 @@ $('form').addEventListener('submit',async e=>{
   if(it.link&&!/^https:\/\//.test(it.link))it.link='';
   $('saveBtn').disabled=true;
   const wasDone=editing&&(+editing.stage||0)>=LAST;
-  try{await saveItem(it);closeForm();if(it.stage>=LAST&&!wasDone){const c=$('cat');c.classList.remove('cheer');void c.offsetWidth;c.classList.add('cheer')}}
+  try{await saveItem(it);dirty=false;closeForm();if(yearOf(it)!==year){year=yearOf(it);try{localStorage.setItem(LS+'-year',year)}catch(e2){}render()}if(it.stage>=LAST&&!wasDone){const c=$('cat');c.classList.remove('cheer');void c.offsetWidth;c.classList.add('cheer')}}
   catch(err){$('note').textContent=err&&err.name==='QuotaExceededError'?'На устройстве закончилось место для трекера. Удалите старые литмобы или обложки.':'Не получилось сохранить. Попробуйте ещё раз.'}
   finally{$('saveBtn').disabled=false}
 });
